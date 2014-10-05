@@ -13,7 +13,7 @@
     ],
     "autoload": {
         "psr-4": {
-            "Helmich\\PhpEvaluator": "src"
+            "Helmich\\PhpEvaluator\\": "src"
         }
     }
 }
