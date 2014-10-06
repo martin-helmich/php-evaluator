@@ -74,15 +74,7 @@ class Evaluator
         }
         elseif ($expression instanceof Expr\New_)
         {
-            $class = $this->evaluateNameOrExpression($expression);
-
-            $argValues = array_map(
-                function (Arg $arg) { return $this->evaluateExpression($arg->value); },
-                $expression->args
-            );
-
-            $refl = new \ReflectionClass($class);
-            return $refl->newInstanceArgs($argValues);
+            return $this->evaluateNew($expression);
         }
         elseif ($expression instanceof Expr\Instanceof_)
         {
@@ -100,17 +92,7 @@ class Evaluator
         }
         elseif ($expression instanceof Expr\StaticCall)
         {
-            $class     = $this->evaluateNameOrExpression($expression->class);
-            $name      = ($expression->name instanceof Expr) ? $this->evaluateExpression(
-                $expression->name
-            ) : $expression->name;
-            $argValues = array_map(
-                function (Arg $arg) { return $this->evaluateExpression($arg->value); },
-                $expression->args
-            );
-
-            $function = $this->functions[$class . '::' . $name];
-            return call_user_func_array($function, $argValues);
+            return $this->evaluateStaticCall($expression);
         }
         elseif ($expression instanceof Expr\Variable)
         {
@@ -206,5 +188,46 @@ class Evaluator
             return $node->toString();
         }
         return NULL;
+    }
+
+
+
+    /**
+     * @param Expr\StaticCall $expression
+     * @throws \Exception
+     * @return mixed
+     */
+    private function evaluateStaticCall(Expr\StaticCall $expression)
+    {
+        $class     = $this->evaluateNameOrExpression($expression->class);
+        $name      = ($expression->name instanceof Expr) ? $this->evaluateExpression(
+            $expression->name
+        ) : $expression->name;
+        $argValues = array_map(
+            function (Arg $arg) { return $this->evaluateExpression($arg->value); },
+            $expression->args
+        );
+
+        $function = $this->functions[$class . '::' . $name];
+        return call_user_func_array($function, $argValues);
+    }
+
+
+
+    /**
+     * @param Expr\New_ $expression
+     * @return object
+     */
+    private function evaluateNew(Expr\New_ $expression)
+    {
+        $class = $this->evaluateNameOrExpression($expression);
+
+        $argValues = array_map(
+            function (Arg $arg) { return $this->evaluateExpression($arg->value); },
+            $expression->args
+        );
+
+        $refl = new \ReflectionClass($class);
+        return $refl->newInstanceArgs($argValues);
     }
 } 
