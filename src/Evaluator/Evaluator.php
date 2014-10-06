@@ -119,6 +119,16 @@ class Evaluator
                 : $expression->name;
             return $this->globals[$name];
         }
+        elseif ($expression instanceof Expr\ArrayDimFetch)
+        {
+            $var = $this->evaluateExpression($expression->var);
+            $dim = $expression->dim ? $this->evaluateExpression($expression->dim) : NULL;
+            return $dim ? $var[$dim] : NULL;
+        }
+        elseif($expression instanceof Expr\UnaryMinus)
+        {
+            return - $this->evaluateExpression($expression->expr);
+        }
         throw new \Exception('Cannot handle node ' . get_class($expression) . '!');
     }
 
