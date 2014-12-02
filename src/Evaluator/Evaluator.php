@@ -94,6 +94,10 @@ class Evaluator
         {
             return $this->evaluateStaticCall($expression);
         }
+        elseif ($expression instanceof Expr\FuncCall)
+        {
+            return $this->evaluateFunctionCall($expression);
+        }
         elseif ($expression instanceof Expr\Variable)
         {
             $name = ($expression->name instanceof Expr)
@@ -107,11 +111,11 @@ class Evaluator
             $dim = $expression->dim ? $this->evaluateExpression($expression->dim) : NULL;
             return $dim ? $var[$dim] : NULL;
         }
-        elseif($expression instanceof Expr\UnaryMinus)
+        elseif ($expression instanceof Expr\UnaryMinus)
         {
-            return - $this->evaluateExpression($expression->expr);
+            return -$this->evaluateExpression($expression->expr);
         }
-        throw new \Exception('Cannot handle node ' . get_class($expression) . '!');
+        throw new \Exception('Cannot handle node ' . get_class($expression) . '! ' . print_r($expression, TRUE));
     }
 
 
@@ -209,16 +213,39 @@ class Evaluator
      */
     private function evaluateStaticCall(Expr\StaticCall $expression)
     {
-        $class     = $this->evaluateNameOrExpression($expression->class);
-        $name      = ($expression->name instanceof Expr) ? $this->evaluateExpression(
-            $expression->name
-        ) : $expression->name;
+        $class = $this->evaluateNameOrExpression($expression->class);
+        $name  = ($expression->name instanceof Expr)
+            ? $this->evaluateExpression($expression->name)
+            : $expression->name;
+
         $argValues = array_map(
             function (Arg $arg) { return $this->evaluateExpression($arg->value); },
             $expression->args
         );
 
         $function = $this->functions[$class . '::' . $name];
+        return call_user_func_array($function, $argValues);
+    }
+
+
+
+    /**
+     * @param Expr\FuncCall $funcCall
+     * @return mixed
+     * @throws \Exception
+     */
+    private function evaluateFunctionCall(Expr\FuncCall $funcCall)
+    {
+        $name = ($funcCall->name instanceof Expr)
+            ? $this->evaluateExpression($funcCall->name)
+            : $funcCall->name;
+
+        $argValues = array_map(
+            function (Arg $arg) { return $this->evaluateExpression($arg->value); },
+            $funcCall->args
+        );
+
+        $function = $this->functions['' . $name];
         return call_user_func_array($function, $argValues);
     }
 
